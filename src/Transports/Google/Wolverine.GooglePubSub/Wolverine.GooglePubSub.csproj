@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	<PackageId>WolverineFx.GooglePubSub</PackageId>
+	<Description>Google PubSub transport for Wolverine applications</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Google.Cloud.PubSub.V1" Version="3.16.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\Wolverine\Wolverine.csproj" />
+  </ItemGroup>
+
+</Project>
