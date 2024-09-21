@@ -4,6 +4,8 @@ using JasperFx.Core;
 using Microsoft.Extensions.Hosting;
 using Shouldly;
 using Testcontainers.PubSub;
+using Wolverine.Configuration;
+using Wolverine.GooglePubSub.Internals;
 using Wolverine.Tracking;
 
 namespace Wolverine.GooglePubSub.Tests;
@@ -40,7 +42,6 @@ public class end_to_end : IAsyncLifetime
         .BuildAsync();
         var subscriptionName = new SubscriptionName("my-project", "my-subscription");
         subscriberService.CreateSubscription(subscriptionName, topicName, pushConfig: null, ackDeadlineSeconds: 60);
-
 
         _host = await Host.CreateDefaultBuilder()
             .UseWolverine(opts =>
@@ -79,11 +80,53 @@ public class end_to_end : IAsyncLifetime
 
         var session = await _host.TrackActivity()
             .IncludeExternalTransports()
-            .Timeout(5.Minutes())
+            .Timeout(1.Minutes())
             .SendMessageAndWaitAsync(message);
 
         session.Received.SingleMessage<TestMessage>()
             .Name.ShouldBe(message.Name);
+    }
+
+    [Fact]
+    public async Task builds_system_topic_and_subscriptions_by_default()
+    {
+        var transport = _host.GetRuntime().Options.Transports.GetOrCreate<GooglePubSubTransport>();
+        var endpoints = transport
+            .Endpoints()
+            .Where(x => x.Role == EndpointRole.System)
+            .OfType<GooglePubSubTopicSubscription>()
+            .ToArray();
+
+        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.response."));
+        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.retries."));
+    }
+
+    [Fact]
+    public async Task disables_system_topic_and_subscriptions()
+    {
+
+    }
+
+    [Fact]
+    public async Task send_and_receive_multiple_messages()
+    {
+        Func<IMessageContext, Task> sendMany = async bus =>
+        {
+            await bus.SendAsync(new TestMessage("Red"));
+            await bus.SendAsync(new TestMessage("Green"));
+            await bus.SendAsync(new TestMessage("Refactor"));
+        };
+
+        var message = new TestMessage("testing");
+
+        var session = await _host.TrackActivity()
+            .IncludeExternalTransports()
+            .Timeout(1.Minutes())
+            .ExecuteAndWaitAsync(sendMany);
+
+        session.Received.MessagesOf<TestMessage>()
+            .Select(x => x.Name)
+            .ShouldBe(["Red", "Green", "Refactor"]);
     }
 
     [Fact]

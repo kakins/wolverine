@@ -2,7 +2,7 @@
 using Wolverine.Configuration;
 using Wolverine.Transports;
 
-namespace Wolverine.GooglePubSub
+namespace Wolverine.GooglePubSub.Internals
 {
     public abstract class GooglePubSubEndpoint : Endpoint, IBrokerEndpoint
     {

@@ -3,7 +3,6 @@ using Google.Protobuf;
 using JasperFx.Core;
 using JasperFx.Core.Reflection;
 using Wolverine.Configuration;
-using Wolverine.GooglePubSub.Internals;
 
 namespace Wolverine.GooglePubSub
 {

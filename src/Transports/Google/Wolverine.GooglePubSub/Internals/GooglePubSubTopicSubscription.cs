@@ -1,12 +1,11 @@
 ﻿using Google.Cloud.PubSub.V1;
 using Microsoft.Extensions.Logging;
 using Wolverine.Configuration;
-using Wolverine.GooglePubSub.Internals;
 using Wolverine.Runtime;
 using Wolverine.Transports;
 using Wolverine.Transports.Sending;
 
-namespace Wolverine.GooglePubSub
+namespace Wolverine.GooglePubSub.Internals
 {
     public class GooglePubSubTopicSubscription : GooglePubSubEndpoint
     {
@@ -19,7 +18,7 @@ namespace Wolverine.GooglePubSub
 
         private bool _hasInitialized;
 
-        public GooglePubSubTopicSubscription(GooglePubSubTransport parent, GooglePubSubTopic topic, string id, string projectId) 
+        public GooglePubSubTopicSubscription(GooglePubSubTransport parent, GooglePubSubTopic topic, string id, string projectId)
             : base(new Uri($"{parent.Protocol}://projects/{projectId}/subscriptions/{id}"), EndpointRole.Application)
         {
             ArgumentNullException.ThrowIfNull(parent);
@@ -65,8 +64,8 @@ namespace Wolverine.GooglePubSub
         internal async ValueTask SetupAsync(SubscriberServiceApiClient client, ILogger logger)
         {
             var subscription = await client.GetSubscriptionAsync(new SubscriptionName(ProjectId, Id));
-            if (subscription == null) 
-            { 
+            if (subscription == null)
+            {
                 // TODO: Create subscription
             }
         }

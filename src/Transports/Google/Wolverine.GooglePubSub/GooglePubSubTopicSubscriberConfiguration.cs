@@ -1,5 +1,6 @@
 ﻿using Google.Cloud.PubSub.V1;
 using Wolverine.Configuration;
+using Wolverine.GooglePubSub.Internals;
 
 namespace Wolverine.GooglePubSub
 {

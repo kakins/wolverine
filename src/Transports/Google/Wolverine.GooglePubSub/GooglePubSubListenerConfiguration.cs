@@ -1,4 +1,5 @@
 ﻿using Wolverine.Configuration;
+using Wolverine.GooglePubSub.Internals;
 
 namespace Wolverine.GooglePubSub
 {
