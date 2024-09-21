@@ -1,4 +1,5 @@
-﻿using Google.Cloud.PubSub.V1;
+﻿using Google.Api.Gax;
+using Google.Cloud.PubSub.V1;
 using JasperFx.Core;
 using Wolverine.Configuration;
 using Wolverine.GooglePubSub.Internals;
@@ -11,8 +12,12 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
 {
     // TODO: Is there a better way to pass in the project ID?
     public string ProjectId { get; set; }
-    public SubscriberServiceApiClient SubscriberServiceApiClient { get; }
-    public PublisherServiceApiClient PublisherServiceApiClient { get; }
+    private readonly Lazy<PublisherServiceApiClient> _publisherServiceApiClient;
+    private readonly Lazy<SubscriberServiceApiClient> _subscriberServiceApiClient;
+
+    public SubscriberServiceApiClient SubscriberServiceApiClient => _subscriberServiceApiClient.Value;
+    public PublisherServiceApiClient PublisherServiceApiClient => _publisherServiceApiClient.Value;
+
     public LightweightCache<string, GooglePubSubTopic> Topics { get; }
     public readonly List<GooglePubSubTopicSubscription> Subscriptions = new();
     public bool SystemTopicsEnabled { get; set; } = true;
@@ -23,6 +28,24 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
     public GooglePubSubTransport() : base(ProtocolName, "Google PubSub")
     {
         Topics = new(name => new GooglePubSubTopic(this, ProjectId, name));
+        
+        _publisherServiceApiClient = new Lazy<PublisherServiceApiClient>(() =>
+        {
+            return new PublisherServiceApiClientBuilder()
+            {
+                EmulatorDetection = EmulatorDetection.EmulatorOrProduction,
+            }
+            .Build();
+        });
+
+        _subscriberServiceApiClient = new Lazy<SubscriberServiceApiClient>(() =>
+        {
+            return new SubscriberServiceApiClientBuilder()
+            {
+                EmulatorDetection = EmulatorDetection.EmulatorOrProduction,
+            }
+            .Build();
+        });
 
         IdentifierDelimiter = ".";
     }
@@ -91,12 +114,27 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
         if (!SystemTopicsEnabled)
             return;
 
-        var topicName = $"wolverine.response.{runtime.DurabilitySettings.AssignedNodeNumber}";
-        var topic = Topics[topicName];
-        topic.Mode = EndpointMode.BufferedInMemory;
-        topic.EndpointName = "GooglePubSubResponses";
-        topic.IsUsedForReplies = true;
-        // TODO: fix why we can't set this 
-        //topic.Role = EndpointRole.System;
+        CreateTopicAndSubscription(
+            $"wolverine.response.{runtime.DurabilitySettings.AssignedNodeNumber}",
+            "GooglePubSubResponses");
+
+        CreateTopicAndSubscription(
+            SanitizeIdentifier($"wolverine.retries.{runtime.Options.ServiceName}".ToLower()),
+            "GooglePubSubRetries");
+
+        void CreateTopicAndSubscription(string topicName, string endpointName)
+        {
+            var topic = Topics[topicName];
+            topic.Mode = EndpointMode.BufferedInMemory;
+            //topic.IsListener = true;
+            topic.EndpointName = endpointName;
+            topic.Role = EndpointRole.System;
+        }
+    }
+
+    public override Endpoint? ReplyEndpoint()
+    {
+        // todo: return reply subscription
+        return base.ReplyEndpoint();
     }
 }

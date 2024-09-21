@@ -16,6 +16,7 @@ using Wolverine.Attributes;
 [assembly: InternalsVisibleTo("Wolverine.AzureServiceBus")]
 [assembly: InternalsVisibleTo("Wolverine.ConfluentKafka")]
 [assembly: InternalsVisibleTo("Wolverine.AzureServiceBus.Tests")]
+[assembly: InternalsVisibleTo("Wolverine.GooglePubSub")]
 [assembly: InternalsVisibleTo("PersistenceTests")]
 [assembly: InternalsVisibleTo("EfCoreTests")]
 [assembly: InternalsVisibleTo("MartenTests")]

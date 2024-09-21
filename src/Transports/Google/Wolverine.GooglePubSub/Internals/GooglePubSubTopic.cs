@@ -10,6 +10,7 @@ namespace Wolverine.GooglePubSub.Internals;
 public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
 {
     private readonly GooglePubSubTransport _parent;
+    private bool _hasInitialized;
 
     public IGooglePubSubEnvelopeMapper Mapper { get; set; }
     public PublisherClientBuilder Configuration { get; } = new();
@@ -51,10 +52,46 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
         throw new NotImplementedException();
     }
 
-    public override ValueTask SetupAsync(ILogger logger)
+    public override async ValueTask InitializeAsync(ILogger logger)
     {
-        // todo: check topic exists, create
-        throw new NotImplementedException();
+        if (_hasInitialized)
+        {
+            return;
+        }
+
+        if (_parent.AutoProvision)
+        {
+            await SetupAsync(logger);
+        }
+
+        _hasInitialized = true;
+    }
+
+    public override async ValueTask SetupAsync(ILogger logger)
+    {
+        var apiClient = _parent.PublisherServiceApiClient;
+
+        var topicName = new TopicName(ProjectId, TopicName);
+
+        try
+        {
+            var existingTopic = await apiClient.GetTopicAsync(topicName, CancellationToken.None);
+        }
+        catch (Grpc.Core.RpcException ex)
+        {
+            if (ex.StatusCode != Grpc.Core.StatusCode.NotFound)
+                throw;
+        }
+
+        try
+        {
+            await apiClient.CreateTopicAsync(topicName, CancellationToken.None);
+        }
+        catch (Exception e)
+        {
+            logger.LogError(e, "Error trying to initialize topic {Name}", TopicName);
+            throw;
+        }
     }
 
     internal GooglePubSubTopicSubscription FindOrCreateSubscription(string subscriptionId, string projectId)

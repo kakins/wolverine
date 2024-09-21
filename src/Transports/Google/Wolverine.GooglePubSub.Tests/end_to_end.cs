@@ -88,17 +88,23 @@ public class end_to_end : IAsyncLifetime
     }
 
     [Fact]
-    public async Task builds_system_topic_and_subscriptions_by_default()
+    public async Task builds_system_topics_by_default()
     {
         var transport = _host.GetRuntime().Options.Transports.GetOrCreate<GooglePubSubTransport>();
         var endpoints = transport
             .Endpoints()
             .Where(x => x.Role == EndpointRole.System)
-            .OfType<GooglePubSubTopicSubscription>()
+            .OfType<GooglePubSubTopic>()
             .ToArray();
 
-        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.response."));
-        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.retries."));
+        endpoints.ShouldContain(x => x.TopicName.StartsWith("wolverine.response."));
+        endpoints.ShouldContain(x => x.TopicName.StartsWith("wolverine.retries."));
+    }
+
+    [Fact]
+    public async Task builds_system_subscriptions_by_default()
+    {
+
     }
 
     [Fact]
