@@ -13,7 +13,7 @@ namespace Wolverine.GooglePubSub.Internals
         public SubscriberClientBuilder Configuration { get; } = new();
         public string Id { get; set; }
         public string ProjectId { get; set; }
-        public GooglePubSubTransport Parent { get; }
+        private readonly GooglePubSubTransport _parent;
         public GooglePubSubTopic Topic { get; internal set; }
 
         private bool _hasInitialized;
@@ -21,12 +21,14 @@ namespace Wolverine.GooglePubSub.Internals
         public GooglePubSubTopicSubscription(GooglePubSubTransport parent, GooglePubSubTopic topic, string id, string projectId)
             : base(new Uri($"{parent.Protocol}://projects/{projectId}/subscriptions/{id}"), EndpointRole.Application)
         {
+            IsListener = true;
+
             ArgumentNullException.ThrowIfNull(parent);
 
             Mode = EndpointMode.Inline;
 
             Mapper = new GooglePubSubEnvelopeMapper(this);
-            Parent = parent;
+            _parent = parent;
             Topic = topic;
             Id = id;
             ProjectId = projectId;
@@ -47,26 +49,38 @@ namespace Wolverine.GooglePubSub.Internals
                 return;
             }
 
-            var client = Parent.SubscriberServiceApiClient;
-            //await InitializeAsync(client, logger);
+            if (_parent.AutoProvision)
+            {
+                await SetupAsync(logger);
+            }
 
             _hasInitialized = true;
         }
 
-        internal async ValueTask InitializeAsync(SubscriberServiceApiClient client, ILogger logger)
+        public override async ValueTask SetupAsync(ILogger logger)
         {
-            if (Parent.AutoProvision)
-            {
-                await SetupAsync(client, logger);
-            }
-        }
+            var apiClient = _parent.SubscriberServiceApiClient;
 
-        internal async ValueTask SetupAsync(SubscriberServiceApiClient client, ILogger logger)
-        {
-            var subscription = await client.GetSubscriptionAsync(new SubscriptionName(ProjectId, Id));
-            if (subscription == null)
+            var subscriptionName = new SubscriptionName(ProjectId, Id);
+
+            try
             {
-                // TODO: Create subscription
+                var existingTopic = await apiClient.GetSubscriptionAsync(subscriptionName, CancellationToken.None);
+            }
+            catch (Grpc.Core.RpcException ex)
+            {
+                if (ex.StatusCode != Grpc.Core.StatusCode.NotFound)
+                    throw;
+            }
+
+            try
+            {
+                await apiClient.CreateSubscriptionAsync(subscriptionName, new TopicName(ProjectId, Topic.TopicName), pushConfig: null, ackDeadlineSeconds: 60);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "Error trying to initialize subscription {Id}", Id);
+                throw;
             }
         }
 
@@ -85,12 +99,6 @@ namespace Wolverine.GooglePubSub.Internals
         public override ValueTask TeardownAsync(ILogger logger)
         {
             // todo: delete subscription
-            throw new NotImplementedException();
-        }
-
-        public override ValueTask SetupAsync(ILogger logger)
-        {
-            // todo: check topic exists, create
             throw new NotImplementedException();
         }
     }

@@ -20,6 +20,7 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
 
     public LightweightCache<string, GooglePubSubTopic> Topics { get; }
     public readonly List<GooglePubSubTopicSubscription> Subscriptions = new();
+
     public bool SystemTopicsEnabled { get; set; } = true;
 
     // TODO: This should be what?
@@ -114,6 +115,8 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
         if (!SystemTopicsEnabled)
             return;
 
+        // TODO: make topic/subscription config available
+
         CreateTopicAndSubscription(
             $"wolverine.response.{runtime.DurabilitySettings.AssignedNodeNumber}",
             "GooglePubSubResponses");
@@ -126,9 +129,24 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
         {
             var topic = Topics[topicName];
             topic.Mode = EndpointMode.BufferedInMemory;
-            //topic.IsListener = true;
             topic.EndpointName = endpointName;
             topic.Role = EndpointRole.System;
+
+            var subscription = Subscriptions.FirstOrDefault(s => s.Id == topicName);
+            if (subscription == null)
+            {
+                subscription = new GooglePubSubTopicSubscription(this, topic, topicName, ProjectId)
+                {
+                    Mode = EndpointMode.BufferedInMemory,
+                    Role = EndpointRole.System
+                };
+
+                // TODO: move into passed in config
+                // e.g., configure(subscription.Configuration)
+                subscription.Configuration.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
+
+                Subscriptions.Add(subscription);
+            }
         }
     }
 

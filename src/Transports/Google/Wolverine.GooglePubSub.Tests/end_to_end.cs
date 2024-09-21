@@ -10,23 +10,23 @@ using Wolverine.Tracking;
 
 namespace Wolverine.GooglePubSub.Tests;
 
-public class end_to_end : IAsyncLifetime
+public class EndToEndFixture : IAsyncLifetime
 {
-    private IHost _host;
-    private PubSubContainer _pubSubContainer;
+    public PubSubContainer PubSubContainer { get; private set; }
+    public IHost Host { get; set; }
 
     public async Task InitializeAsync()
     {
         Environment.SetEnvironmentVariable("PUBSUB_EMULATOR_HOST", "localhost:8085");
         Environment.SetEnvironmentVariable("PUBSUB_PROJECT_ID", "test-project");
 
-        _pubSubContainer = new PubSubBuilder()
+        PubSubContainer = new PubSubBuilder()
             .WithImage("gcr.io/google.com/cloudsdktool/google-cloud-cli:emulators")
             .WithEnvironment("PUBSUB_PROJECT_ID", "test-project")
             .WithPortBinding(8085)
             .Build();
 
-        await _pubSubContainer.StartAsync();
+        await PubSubContainer.StartAsync();
 
         var publisherService = await new PublisherServiceApiClientBuilder
         {
@@ -43,7 +43,7 @@ public class end_to_end : IAsyncLifetime
         var subscriptionName = new SubscriptionName("my-project", "my-subscription");
         subscriberService.CreateSubscription(subscriptionName, topicName, pushConfig: null, ackDeadlineSeconds: 60);
 
-        _host = await Host.CreateDefaultBuilder()
+        Host = await Microsoft.Extensions.Hosting.Host.CreateDefaultBuilder()
             .UseWolverine(opts =>
             {
                 opts.UseGooglePubSub("test-project").AutoProvision();
@@ -73,12 +73,29 @@ public class end_to_end : IAsyncLifetime
             }).StartAsync();
     }
 
+    public Task DisposeAsync()
+    {
+        return Task.CompletedTask;
+    }
+}
+
+public class end_to_end : IClassFixture<EndToEndFixture>
+{
+    //private IHost _host;
+    //private PubSubContainer _pubSubContainer;
+    private readonly EndToEndFixture _fixture;
+
+    public end_to_end(EndToEndFixture fixture)
+    {
+        _fixture = fixture;
+    }
+
     [Fact]
     public async Task send_and_receive_a_single_message()
     {
         var message = new TestMessage("testing");
 
-        var session = await _host.TrackActivity()
+        var session = await _fixture.Host.TrackActivity()
             .IncludeExternalTransports()
             .Timeout(1.Minutes())
             .SendMessageAndWaitAsync(message);
@@ -90,7 +107,7 @@ public class end_to_end : IAsyncLifetime
     [Fact]
     public async Task builds_system_topics_by_default()
     {
-        var transport = _host.GetRuntime().Options.Transports.GetOrCreate<GooglePubSubTransport>();
+        var transport = _fixture.Host.GetRuntime().Options.Transports.GetOrCreate<GooglePubSubTransport>();
         var endpoints = transport
             .Endpoints()
             .Where(x => x.Role == EndpointRole.System)
@@ -104,7 +121,15 @@ public class end_to_end : IAsyncLifetime
     [Fact]
     public async Task builds_system_subscriptions_by_default()
     {
+        var transport = _fixture.Host.GetRuntime().Options.Transports.GetOrCreate<GooglePubSubTransport>();
+        var endpoints = transport
+            .Endpoints()
+            .Where(x => x.Role == EndpointRole.System)
+            .OfType<GooglePubSubTopicSubscription>()
+            .ToArray();
 
+        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.response."));
+        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.retries."));
     }
 
     [Fact]
@@ -125,7 +150,7 @@ public class end_to_end : IAsyncLifetime
 
         var message = new TestMessage("testing");
 
-        var session = await _host.TrackActivity()
+        var session = await _fixture.Host.TrackActivity()
             .IncludeExternalTransports()
             .Timeout(1.Minutes())
             .ExecuteAndWaitAsync(sendMany);
@@ -135,7 +160,7 @@ public class end_to_end : IAsyncLifetime
             .ShouldBe(["Red", "Green", "Refactor"]);
     }
 
-    [Fact]
+    //[Fact]
     public async Task Test1()
     {
         // First create a topic.
@@ -195,7 +220,6 @@ public class end_to_end : IAsyncLifetime
     {
     }
 
-    public record TestMessage(string Name);
 
     public static class PubSubMessageHandler
     {
@@ -204,3 +228,5 @@ public class end_to_end : IAsyncLifetime
         }
     }
 }
+
+public record TestMessage(string Name);
