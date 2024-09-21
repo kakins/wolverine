@@ -43,6 +43,7 @@ namespace Wolverine.GooglePubSub
             this WolverineOptions endpoints,
             string projectId,
             string subscriptionId,
+            Action<Subscription> configureSubscription = null,
             Action<SubscriberClientBuilder> configureSubscriber = null)
         {
             if (subscriptionId == null)
@@ -69,16 +70,18 @@ namespace Wolverine.GooglePubSub
             public SubscriptionExpression(
                 string projectId,
                 string subscriptionId,
-                Action<SubscriberClientBuilder> configureSubscription,
+                Action<SubscriberClientBuilder> configureClient,
                 GooglePubSubTransport transport)
             {
                 _projectId = projectId;
                 _subscriptionId = subscriptionId;
-                _configureSubscriber = configureSubscription;
+                _configureSubscriber = configureClient;
                 _transport = transport;
             }
 
-            public GooglePubSubListenerConfiguration FromTopic(string topicName, Action<PublisherClientBuilder> configureClient = null)
+            public GooglePubSubListenerConfiguration FromTopic(
+                string topicName, 
+                Action<PublisherClientBuilder> configurePublisher = null)
             {
                 if (topicName == null)
                 {
@@ -89,11 +92,10 @@ namespace Wolverine.GooglePubSub
                 topicName = _transport.MaybeCorrectName(topicName);
 
                 var topic = _transport.Topics[topicName];
-                configureClient?.Invoke(topic.ClientConfiguration);
+                configurePublisher?.Invoke(topic.PublisherConfiguration);
 
                 var subscription = topic.FindOrCreateSubscription(_subscriptionId, _projectId);
-                subscription.IsListener = true;
-                _configureSubscriber?.Invoke(subscription.Configuration);
+                _configureSubscriber?.Invoke(subscription.SubscriberConfiguration);
 
                 return new GooglePubSubListenerConfiguration(subscription);
             }

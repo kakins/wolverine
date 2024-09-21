@@ -64,7 +64,11 @@ public class EndToEndFixture : IAsyncLifetime
 
                 opts.ListenToGooglePubSubTopicSubscription(
                     "test-project", 
-                    "test-subscription", 
+                    "test-subscription",
+                    subscription => 
+                    {
+                        subscription.EnableMessageOrdering = true;
+                    },
                     subscriber =>
                     {
                         // ...
@@ -134,8 +138,8 @@ public class end_to_end : IClassFixture<EndToEndFixture>
             .OfType<GooglePubSubTopicSubscription>()
             .ToArray();
 
-        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.response."));
-        endpoints.ShouldContain(x => x.Id.StartsWith("wolverine.retries."));
+        endpoints.ShouldContain(x => x.SubscriptionName.SubscriptionId.StartsWith("wolverine.response."));
+        endpoints.ShouldContain(x => x.SubscriptionName.SubscriptionId.StartsWith("wolverine.retries."));
     }
 
     [Fact]

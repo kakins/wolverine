@@ -125,17 +125,17 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
             SanitizeIdentifier($"wolverine.retries.{runtime.Options.ServiceName}".ToLower()),
             "GooglePubSubRetries");
 
-        void CreateTopicAndSubscription(string topicName, string endpointName)
+        void CreateTopicAndSubscription(string subscriptionId, string endpointName)
         {
-            var topic = Topics[topicName];
+            var topic = Topics[subscriptionId];
             topic.Mode = EndpointMode.BufferedInMemory;
             topic.EndpointName = endpointName;
             topic.Role = EndpointRole.System;
 
-            var subscription = Subscriptions.FirstOrDefault(s => s.Id == topicName);
+            var subscription = Subscriptions.FirstOrDefault(s => s.SubscriptionName.SubscriptionId == subscriptionId);
             if (subscription == null)
             {
-                subscription = new GooglePubSubTopicSubscription(this, topic, topicName, ProjectId)
+                subscription = new GooglePubSubTopicSubscription(this, topic, subscriptionId, ProjectId)
                 {
                     Mode = EndpointMode.BufferedInMemory,
                     Role = EndpointRole.System
@@ -143,7 +143,7 @@ public class GooglePubSubTransport : BrokerTransport<GooglePubSubEndpoint>
 
                 // TODO: move into passed in config
                 // e.g., configure(subscription.Configuration)
-                subscription.Configuration.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
+                subscription.SubscriberConfiguration.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
 
                 Subscriptions.Add(subscription);
             }

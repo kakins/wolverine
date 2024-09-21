@@ -13,7 +13,7 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
     private bool _hasInitialized;
 
     public IGooglePubSubEnvelopeMapper Mapper { get; set; }
-    public PublisherClientBuilder ClientConfiguration { get; } = new();
+    public PublisherClientBuilder PublisherConfiguration { get; } = new();
     public Topic TopicConfiguration { get; }
     public TopicName TopicName => TopicConfiguration.TopicName;
 
@@ -39,8 +39,8 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
 
     protected override ISender CreateSender(IWolverineRuntime runtime)
     {
-        ClientConfiguration.TopicName ??= TopicConfiguration.TopicName;
-        var publisherClient = ClientConfiguration.Build();
+        PublisherConfiguration.TopicName ??= TopicConfiguration.TopicName;
+        var publisherClient = PublisherConfiguration.Build();
         return new GooglePubSubSender(this, publisherClient);
     }
 
@@ -99,7 +99,7 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
     internal GooglePubSubTopicSubscription FindOrCreateSubscription(string subscriptionId, string projectId)
     {
         var existing =
-            _parent.Subscriptions.FirstOrDefault(x => x.Id == subscriptionId && x.Topic == this);
+            _parent.Subscriptions.FirstOrDefault(x => x.SubscriptionName.SubscriptionId == subscriptionId && x.Topic == this);
 
         if (existing != null)
         {

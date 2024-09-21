@@ -10,9 +10,9 @@ namespace Wolverine.GooglePubSub.Internals
     public class GooglePubSubTopicSubscription : GooglePubSubEndpoint
     {
         public IGooglePubSubEnvelopeMapper Mapper { get; set; }
-        public SubscriberClientBuilder Configuration { get; } = new();
-        public string Id { get; set; }
-        public string ProjectId { get; set; }
+        public SubscriberClientBuilder SubscriberConfiguration { get; } = new();
+        public Subscription SubscriptionConfiguration { get; } = new();
+        public SubscriptionName SubscriptionName => SubscriptionConfiguration.SubscriptionName;
         private readonly GooglePubSubTransport _parent;
         public GooglePubSubTopic Topic { get; internal set; }
 
@@ -24,20 +24,24 @@ namespace Wolverine.GooglePubSub.Internals
             IsListener = true;
 
             ArgumentNullException.ThrowIfNull(parent);
+            _parent = parent;
 
             Mode = EndpointMode.Inline;
 
             Mapper = new GooglePubSubEnvelopeMapper(this);
-            _parent = parent;
+
             Topic = topic;
-            Id = id;
-            ProjectId = projectId;
+            SubscriptionConfiguration = new Subscription()
+            {
+                Topic = topic.TopicName.TopicId,
+                SubscriptionName = new SubscriptionName(projectId, id)
+            };
         }
 
         public async override ValueTask<IListener> BuildListenerAsync(IWolverineRuntime runtime, IReceiver receiver)
         {
-            Configuration.SubscriptionName ??= new SubscriptionName(ProjectId, Id);
-            var subscriberClient = await Configuration.BuildAsync();
+            SubscriberConfiguration.SubscriptionName ??= SubscriptionName;
+            var subscriberClient = await SubscriberConfiguration.BuildAsync();
             var listener = new GooglePubSubListener(this, receiver, subscriberClient);
             return listener;
         }
@@ -61,11 +65,9 @@ namespace Wolverine.GooglePubSub.Internals
         {
             var apiClient = _parent.SubscriberServiceApiClient;
 
-            var subscriptionName = new SubscriptionName(ProjectId, Id);
-
             try
             {
-                var existingSubscription = await apiClient.GetSubscriptionAsync(subscriptionName, CancellationToken.None);
+                var existingSubscription = await apiClient.GetSubscriptionAsync(SubscriptionName, CancellationToken.None);
             }
             catch (Grpc.Core.RpcException ex)
             {
@@ -75,11 +77,11 @@ namespace Wolverine.GooglePubSub.Internals
 
             try
             {
-                await apiClient.CreateSubscriptionAsync(subscriptionName, Topic.TopicName, pushConfig: null, ackDeadlineSeconds: 60);
+                await apiClient.CreateSubscriptionAsync(SubscriptionName, Topic.TopicName, pushConfig: null, ackDeadlineSeconds: 60);
             }
             catch (Exception e)
             {
-                logger.LogError(e, "Error trying to initialize subscription {Id}", Id);
+                logger.LogError(e, "Error trying to initialize subscription {Id}", SubscriptionName.SubscriptionId);
                 throw;
             }
         }
