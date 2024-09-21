@@ -50,20 +50,28 @@ public class EndToEndFixture : IAsyncLifetime
 
                 // TODO: Configure testing
                 opts.PublishMessage<TestMessage>()
-                    .ToGooglePubSubTopic("test-message")
-                    .ConfigureTopic(publisher =>
+                    .ToGooglePubSubTopic(
+                        "test-message",
+                        topic =>
+                        {
+                            // topic config
+                        })
+                    .ConfigureClient(publisher =>
                     {
                         publisher.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
                         publisher.TopicName = topicName;
                     });
 
-                opts.ListenToGooglePubSubTopicSubscription("test-project", "test-subscription", subscriber =>
-                {
-                    // ...
-                    subscriber.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
-                    subscriber.SubscriptionName = subscriptionName;
-                })
-                .FromTopic("test-message");
+                opts.ListenToGooglePubSubTopicSubscription(
+                    "test-project", 
+                    "test-subscription", 
+                    subscriber =>
+                    {
+                        // ...
+                        subscriber.EmulatorDetection = EmulatorDetection.EmulatorOrProduction;
+                        subscriber.SubscriptionName = subscriptionName;
+                    })
+                    .FromTopic("test-message");
                 //.FromTopic("test-message", publisher =>
                 //{
                 //    // Optionally alter how the topic/publisher is created
@@ -81,8 +89,6 @@ public class EndToEndFixture : IAsyncLifetime
 
 public class end_to_end : IClassFixture<EndToEndFixture>
 {
-    //private IHost _host;
-    //private PubSubContainer _pubSubContainer;
     private readonly EndToEndFixture _fixture;
 
     public end_to_end(EndToEndFixture fixture)
@@ -114,8 +120,8 @@ public class end_to_end : IClassFixture<EndToEndFixture>
             .OfType<GooglePubSubTopic>()
             .ToArray();
 
-        endpoints.ShouldContain(x => x.TopicName.StartsWith("wolverine.response."));
-        endpoints.ShouldContain(x => x.TopicName.StartsWith("wolverine.retries."));
+        endpoints.ShouldContain(x => x.TopicName.TopicId.StartsWith("wolverine.response."));
+        endpoints.ShouldContain(x => x.TopicName.TopicId.StartsWith("wolverine.retries."));
     }
 
     [Fact]
@@ -139,7 +145,7 @@ public class end_to_end : IClassFixture<EndToEndFixture>
     }
 
     [Fact]
-    public async Task send_and_receive_multiple_messages()
+    public async Task send_and_receive_multiple_messages_concurreently()
     {
         Func<IMessageContext, Task> sendMany = async bus =>
         {
@@ -148,8 +154,6 @@ public class end_to_end : IClassFixture<EndToEndFixture>
             await bus.SendAsync(new TestMessage("Refactor"));
         };
 
-        var message = new TestMessage("testing");
-
         var session = await _fixture.Host.TrackActivity()
             .IncludeExternalTransports()
             .Timeout(1.Minutes())
@@ -157,7 +161,25 @@ public class end_to_end : IClassFixture<EndToEndFixture>
 
         session.Received.MessagesOf<TestMessage>()
             .Select(x => x.Name)
-            .ShouldBe(["Red", "Green", "Refactor"]);
+            .ToArray()
+            .ShouldBeEquivalentTo(new[] { "Red", "Green", "Refactor" });
+    }
+
+    [Fact]
+    public async Task send_and_receive_multiple_messages_in_order()
+    {
+        //var sessionConfig = _fixture.Host.TrackActivity()
+        //    .IncludeExternalTransports()
+        //    .Timeout(1.Minutes());
+
+        //var session = await sessionConfig.ExecuteAndWaitAsync(ctx => ctx.SendAsync(new TestMessage("Red")));
+        //session = await sessionConfig.ExecuteAndWaitAsync(ctx => ctx.SendAsync(new TestMessage("Green")));
+        //session = await sessionConfig.ExecuteAndWaitAsync(ctx => ctx.SendAsync(new TestMessage("Refactor")));
+
+        //session.Received.MessagesOf<TestMessage>()
+        //    .Select(x => x.Name)
+        //    .ToArray()
+        //    .ShouldBeEquivalentTo(new[] { "Red", "Green", "Refactor" });
     }
 
     //[Fact]

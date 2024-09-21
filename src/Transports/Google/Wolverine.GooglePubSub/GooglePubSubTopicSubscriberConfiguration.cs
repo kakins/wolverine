@@ -13,9 +13,9 @@ namespace Wolverine.GooglePubSub
             
         }
 
-        public GooglePubSubTopicSubscriberConfiguration ConfigureTopic(Action<PublisherClientBuilder> configure)
+        public GooglePubSubTopicSubscriberConfiguration ConfigureClient(Action<PublisherClientBuilder> configure)
         {
-            add(e => configure(e.Configuration));
+            add(e => configure(e.ClientConfiguration));
             return this;
         }
     }

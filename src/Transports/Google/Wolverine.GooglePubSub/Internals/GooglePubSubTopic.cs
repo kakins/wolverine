@@ -13,19 +13,23 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
     private bool _hasInitialized;
 
     public IGooglePubSubEnvelopeMapper Mapper { get; set; }
-    public PublisherClientBuilder Configuration { get; } = new();
-    public string TopicName { get; }
-    public string ProjectId { get; }
+    public PublisherClientBuilder ClientConfiguration { get; } = new();
+    public Topic TopicConfiguration { get; }
+    public TopicName TopicName => TopicConfiguration.TopicName;
 
-    public GooglePubSubTopic(GooglePubSubTransport parent, string projectId, string topicName)
-        : base(new Uri($"{parent.Protocol}://projects/{projectId}/topics/{topicName}"), EndpointRole.Application)
+
+    public GooglePubSubTopic(GooglePubSubTransport parent, string projectId, string topicId)
+        : base(new Uri($"{parent.Protocol}://projects/{projectId}/topics/{topicId}"), EndpointRole.Application)
     {
         ArgumentNullException.ThrowIfNull(parent);
+        ArgumentNullException.ThrowIfNull(topicId);
 
         _parent = parent;
         Mapper = new GooglePubSubEnvelopeMapper(this);
-        ProjectId = projectId;
-        TopicName = EndpointName = topicName ?? throw new ArgumentNullException(nameof(topicName));
+        TopicConfiguration = new Topic
+        {
+            TopicName = new TopicName(projectId, topicId)
+        };
     }
 
     public override ValueTask<IListener> BuildListenerAsync(IWolverineRuntime runtime, IReceiver receiver)
@@ -35,8 +39,8 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
 
     protected override ISender CreateSender(IWolverineRuntime runtime)
     {
-        Configuration.TopicName ??= new TopicName(ProjectId, TopicName);
-        var publisherClient = Configuration.Build();
+        ClientConfiguration.TopicName ??= TopicConfiguration.TopicName;
+        var publisherClient = ClientConfiguration.Build();
         return new GooglePubSubSender(this, publisherClient);
     }
 
@@ -71,11 +75,9 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
     {
         var apiClient = _parent.PublisherServiceApiClient;
 
-        var topicName = new TopicName(ProjectId, TopicName);
-
         try
         {
-            var existingTopic = await apiClient.GetTopicAsync(topicName, CancellationToken.None);
+            var existingTopic = await apiClient.GetTopicAsync(TopicConfiguration.TopicName, CancellationToken.None);
         }
         catch (Grpc.Core.RpcException ex)
         {
@@ -85,11 +87,11 @@ public class GooglePubSubTopic : GooglePubSubEndpoint, IBrokerEndpoint
 
         try
         {
-            await apiClient.CreateTopicAsync(topicName, CancellationToken.None);
+            await apiClient.CreateTopicAsync(TopicConfiguration, CancellationToken.None);
         }
         catch (Exception e)
         {
-            logger.LogError(e, "Error trying to initialize topic {Name}", TopicName);
+            logger.LogError(e, "Error trying to initialize topic {TopicId}", TopicConfiguration.TopicName.TopicId);
             throw;
         }
     }

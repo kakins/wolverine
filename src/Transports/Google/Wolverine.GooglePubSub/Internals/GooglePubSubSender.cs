@@ -22,20 +22,13 @@ namespace Wolverine.GooglePubSub.Internals
             _topic = topic;
 
             _publisher = publisher;
-            //_publisher = PublisherClient.Create(
-            //    new TopicName(topic.ProjectId, topic.TopicName),
-            //    // TODO: add via configuration delegates?
-            //    // TODO: replace with PublisherClientBuilder
-            //    new PublisherClient.ClientCreationSettings { },
-            //    new PublisherClient.Settings { });
         }
 
         public async Task<bool> PingAsync()
         {
             try
             {
-                //await SendAsync(Envelope.ForPing(Destination));
-                //await SendAsync(Envelope.ForPing(Destination));
+                await SendAsync(Envelope.ForPing(Destination));
                 return true;
             }
             catch (Exception)
@@ -44,10 +37,11 @@ namespace Wolverine.GooglePubSub.Internals
             }
         }
 
-        public async ValueTask SendAsync(Envelope envelope)
+        public ValueTask SendAsync(Envelope envelope)
         {
             var message = _topic.Mapper.CreateMessage(envelope);
-            await _publisher.PublishAsync(message);
+            var publishTask = _publisher.PublishAsync(message);
+            return new ValueTask(publishTask);
         }
     }
 }

@@ -65,7 +65,7 @@ namespace Wolverine.GooglePubSub.Internals
 
             try
             {
-                var existingTopic = await apiClient.GetSubscriptionAsync(subscriptionName, CancellationToken.None);
+                var existingSubscription = await apiClient.GetSubscriptionAsync(subscriptionName, CancellationToken.None);
             }
             catch (Grpc.Core.RpcException ex)
             {
@@ -75,7 +75,7 @@ namespace Wolverine.GooglePubSub.Internals
 
             try
             {
-                await apiClient.CreateSubscriptionAsync(subscriptionName, new TopicName(ProjectId, Topic.TopicName), pushConfig: null, ackDeadlineSeconds: 60);
+                await apiClient.CreateSubscriptionAsync(subscriptionName, Topic.TopicName, pushConfig: null, ackDeadlineSeconds: 60);
             }
             catch (Exception e)
             {

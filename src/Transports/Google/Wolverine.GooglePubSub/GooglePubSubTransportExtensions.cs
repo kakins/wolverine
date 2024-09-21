@@ -22,13 +22,17 @@ namespace Wolverine.GooglePubSub
             return new GooglePubSubTransportExpression(transport, options);
         }
 
-        public static GooglePubSubTopicSubscriberConfiguration ToGooglePubSubTopic(this IPublishToExpression publishing, string topicName)
+        public static GooglePubSubTopicSubscriberConfiguration ToGooglePubSubTopic(
+            this IPublishToExpression publishing, 
+            string topicName,
+            Action<Topic> configureTopic = null)
         {
             var transports = publishing.As<PublishingExpression>().Parent.Transports;
             var transport = transports.GetOrCreate<GooglePubSubTransport>();
 
             var topic = transport.Topics[topicName];
-
+            configureTopic?.Invoke(topic.TopicConfiguration);
+            
             // This is necessary unfortunately to hook up the subscription rules
             publishing.To(topic.Uri);
 
@@ -74,7 +78,7 @@ namespace Wolverine.GooglePubSub
                 _transport = transport;
             }
 
-            public GooglePubSubListenerConfiguration FromTopic(string topicName, Action<PublisherClientBuilder> configureTopic = null)
+            public GooglePubSubListenerConfiguration FromTopic(string topicName, Action<PublisherClientBuilder> configureClient = null)
             {
                 if (topicName == null)
                 {
@@ -85,7 +89,7 @@ namespace Wolverine.GooglePubSub
                 topicName = _transport.MaybeCorrectName(topicName);
 
                 var topic = _transport.Topics[topicName];
-                configureTopic?.Invoke(topic.Configuration);
+                configureClient?.Invoke(topic.ClientConfiguration);
 
                 var subscription = topic.FindOrCreateSubscription(_subscriptionId, _projectId);
                 subscription.IsListener = true;
