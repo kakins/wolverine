@@ -33,7 +33,7 @@ namespace Wolverine.GooglePubSub.Internals
             Topic = topic;
             SubscriptionConfiguration = new Subscription()
             {
-                Topic = topic.TopicName.TopicId,
+                TopicAsTopicName = topic.TopicName,
                 SubscriptionName = new SubscriptionName(projectId, id)
             };
         }
@@ -77,7 +77,7 @@ namespace Wolverine.GooglePubSub.Internals
 
             try
             {
-                await apiClient.CreateSubscriptionAsync(SubscriptionName, Topic.TopicName, pushConfig: null, ackDeadlineSeconds: 60);
+                await apiClient.CreateSubscriptionAsync(SubscriptionConfiguration);
             }
             catch (Exception e)
             {

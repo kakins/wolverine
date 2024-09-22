@@ -56,6 +56,7 @@ namespace Wolverine.GooglePubSub
             return new SubscriptionExpression(
                 projectId,
                 transport.MaybeCorrectName(subscriptionId),
+                configureSubscription,
                 configureSubscriber,
                 transport);
         }
@@ -64,18 +65,21 @@ namespace Wolverine.GooglePubSub
         {
             private readonly string _projectId;
             private readonly string _subscriptionId;
+            private readonly Action<Subscription> _configureSubscription;
             private readonly Action<SubscriberClientBuilder> _configureSubscriber;
             private readonly GooglePubSubTransport _transport;
 
             public SubscriptionExpression(
                 string projectId,
                 string subscriptionId,
-                Action<SubscriberClientBuilder> configureClient,
+                Action<Subscription> configureSubscription,
+                Action<SubscriberClientBuilder> configureSubscriber,
                 GooglePubSubTransport transport)
             {
                 _projectId = projectId;
                 _subscriptionId = subscriptionId;
-                _configureSubscriber = configureClient;
+                _configureSubscription = configureSubscription;
+                _configureSubscriber = configureSubscriber;
                 _transport = transport;
             }
 
@@ -95,6 +99,7 @@ namespace Wolverine.GooglePubSub
                 configurePublisher?.Invoke(topic.PublisherConfiguration);
 
                 var subscription = topic.FindOrCreateSubscription(_subscriptionId, _projectId);
+                _configureSubscription?.Invoke(subscription.SubscriptionConfiguration);
                 _configureSubscriber?.Invoke(subscription.SubscriberConfiguration);
 
                 return new GooglePubSubListenerConfiguration(subscription);
