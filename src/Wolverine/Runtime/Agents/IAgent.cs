@@ -1,6 +1,9 @@
+using System;
 using Microsoft.Extensions.Hosting;
 
 namespace Wolverine.Runtime.Agents;
+
+#region sample_IAgent
 
 /// <summary>
 ///     Models a constantly running background process within a Wolverine
@@ -19,5 +22,8 @@ public interface IAgent : IHostedService
 public enum AgentStatus
 {
     Started,
-    Stopped
+    Stopped,
+    Paused
 }
+
+#endregion

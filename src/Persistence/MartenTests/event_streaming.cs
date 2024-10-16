@@ -16,6 +16,7 @@ using Wolverine.Marten;
 using Wolverine.Runtime.Routing;
 using Wolverine.Tracking;
 using Wolverine.Transports.Tcp;
+using Wolverine.Util;
 using Xunit.Abstractions;
 
 namespace MartenTests;
@@ -48,7 +49,7 @@ public class event_streaming : PostgresqlContext, IAsyncLifetime
                         opts.Connection(Servers.PostgresConnectionString);
                         opts.Logger(new TestOutputMartenLogger(_output));
                     })
-                    .IntegrateWithWolverine("receiver");
+                    .IntegrateWithWolverine(x => x.MessageStorageSchemaName = "receiver");
 
                 services.AddResourceSetupOnStartup();
             }).StartAsync();
@@ -77,7 +78,7 @@ public class event_streaming : PostgresqlContext, IAsyncLifetime
                         opts.Connection(Servers.PostgresConnectionString);
                         opts.Logger(new TestOutputMartenLogger(_output));
                     })
-                    .IntegrateWithWolverine("sender").EventForwardingToWolverine(opts =>
+                    .IntegrateWithWolverine(x => x.MessageStorageSchemaName = "sender").EventForwardingToWolverine(opts =>
                     {
                         opts.SubscribeToEvent<SecondEvent>().TransformedTo(e => new SecondMessage(e.StreamId, e.Sequence));
                     });

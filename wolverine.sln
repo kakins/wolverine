@@ -247,6 +247,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Google", "Google", "{F09CC3
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Wolverine.GooglePubSub.Tests", "src\Transports\Google\Wolverine.GooglePubSub.Tests\Wolverine.GooglePubSub.Tests.csproj", "{7A3964DE-ADA1-4FC5-84F8-981A7338C3E8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BatchMessaging", "src\Transports\Kafka\BatchMessaging\BatchMessaging.csproj", "{B035801D-E786-4AAA-858A-0770D88116D6}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -613,6 +615,10 @@ Global
 		{71B152DD-7A0B-4935-B8B1-1060E674D23D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{71B152DD-7A0B-4935-B8B1-1060E674D23D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{71B152DD-7A0B-4935-B8B1-1060E674D23D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B035801D-E786-4AAA-858A-0770D88116D6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B035801D-E786-4AAA-858A-0770D88116D6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B035801D-E786-4AAA-858A-0770D88116D6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B035801D-E786-4AAA-858A-0770D88116D6}.Release|Any CPU.Build.0 = Release|Any CPU
 		{683B7D34-1CB5-4176-A94E-2845C260D2BA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{683B7D34-1CB5-4176-A94E-2845C260D2BA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{683B7D34-1CB5-4176-A94E-2845C260D2BA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -737,5 +743,6 @@ Global
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C2ECC747-D9A2-41C2-9A4A-783DEEBF254F}
+		{B035801D-E786-4AAA-858A-0770D88116D6} = {63E9B289-95E8-4F2B-A064-156971A6853C}
 	EndGlobalSection
 EndGlobal

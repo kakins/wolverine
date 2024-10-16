@@ -63,6 +63,40 @@ to notice that in the Azure Portal.
 
 And also see the next section. 
 
+## Wolverine Control Queues
+
+You can opt into using temporary Azure Service Bus queues for intra-node communication
+that Wolverine needs for leader election and background worker distribution. Using Azure
+Service Bus for this feature is more efficient than the built in database control
+queues that Wolverine uses otherwise, and is necessary for message storage options like
+RavenDb that do not have a built in control queue mechanism.
+
+<!-- snippet: sample_enabling_azure_service_bus_control_queues -->
+<a id='snippet-sample_enabling_azure_service_bus_control_queues'></a>
+```cs
+var builder = Host.CreateApplicationBuilder();
+builder.UseWolverine(opts =>
+{
+    // One way or another, you're probably pulling the Azure Service Bus
+    // connection string out of configuration
+    var azureServiceBusConnectionString = builder
+        .Configuration
+        .GetConnectionString("azure-service-bus")!;
+
+    // Connect to the broker in the simplest possible way
+    opts.UseAzureServiceBus(azureServiceBusConnectionString)
+        .AutoProvision()
+        
+        // This enables Wolverine to use temporary Azure Service Bus
+        // queues created at runtime for communication between
+        // Wolverine nodes
+        .EnableWolverineControlQueues();
+
+});
+```
+<sup><a href='https://github.com/JasperFx/wolverine/blob/main/src/Transports/Azure/Wolverine.AzureServiceBus.Tests/DocumentationSamples.cs#L193-L216' title='Snippet source file'>snippet source</a> | <a href='#snippet-sample_enabling_azure_service_bus_control_queues' title='Start of snippet'>anchor</a></sup>
+<!-- endSnippet -->
+
 ## Disabling System Queues
 
 If your application will not have permissions to create temporary queues in Azure Service Bus, you will probably want

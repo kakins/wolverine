@@ -1,6 +1,5 @@
 # Using Kafka
 
-
 ::: warning
 The Kafka transport does not really support the "Requeue" error handling policy in Wolverine. "Requeue" in this case becomes
 effectively an inline "Retry"
@@ -22,7 +21,7 @@ To connect to Kafka, use this syntax:
 using var host = await Host.CreateDefaultBuilder()
     .UseWolverine(opts =>
     {
-        opts.UseKafka("localhost:29092")
+        opts.UseKafka("localhost:9092")
 
             // See https://github.com/confluentinc/confluent-kafka-dotnet for the exact options here
             .ConfigureClient(client =>
